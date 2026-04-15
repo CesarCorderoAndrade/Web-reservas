@@ -1,118 +1,184 @@
 /**
  * IMPORT GUIDE: frontend/src/pages/CustomerBookingView.jsx
- * Diseño Premium: Calendario visual en primer plano.
- * Flujo: Calendario -> Slots (Colores) -> Servicios.
+ * Vista de reservas para el cliente. 
+ * Incluye gestión de estado de cita, logo corporativo y cierre de sesión.
  */
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import apiClient from '../api/client';
 
 const CustomerBookingView = () => {
-  const [selectedDay, setSelectedDay] = useState(null);
-  const [selectedTime, setSelectedTime] = useState(null);
+  const [services, setServices] = useState([]);
   const [selectedService, setSelectedService] = useState(null);
+  const [selectedDate, setSelectedDate] = useState('');
+  const [selectedTime, setSelectedTime] = useState('');
+  const [loading, setLoading] = useState(false);
+  
+  const navigate = useNavigate();
+  const userName = localStorage.getItem('user_name') || 'Cliente';
 
-  const colors = {
-    bg: '#0F172A', card: '#1E293B', text: '#F8FAFC',
-    accent: '#10B981', danger: '#F43F5E', border: '#334155'
+  // Horas disponibles simuladas (esto debería venir del backend en una fase avanzada)
+  const timeSlots = ['09:00', '10:00', '11:00', '12:00', '16:00', '17:00', '18:00', '19:00'];
+
+  useEffect(() => {
+    fetchServices();
+  }, []);
+
+  const fetchServices = async () => {
+    try {
+      const response = await apiClient.get('/services');
+      setServices(response.data);
+    } catch (error) {
+      console.error('Error al cargar servicios:', error);
+    }
   };
 
-  // Generación simple de días para el calendario (Demo)
-  const days = Array.from({ length: 28 }, (_, i) => ({
-    num: i + 1,
-    isFull: i === 5 || i === 12 // Simulamos días llenos
-  }));
+  const handleLogout = () => {
+    // Senior Note: Limpiamos storage y redirigimos al login
+    localStorage.clear();
+    sessionStorage.clear();
+    navigate('/');
+  };
 
-  const hours = [
-    { t: '09:00', free: true }, { t: '10:00', free: false },
-    { t: '11:00', free: true }, { t: '12:00', free: true },
-    { t: '16:00', free: false }, { t: '17:00', free: true }
-  ];
+  const handleConfirmAppointment = async () => {
+    if (!selectedService || !selectedDate || !selectedTime) {
+      alert('Por favor, completa todos los campos para confirmar.');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      // Preparamos el payload con los datos de la reserva
+      const appointmentData = {
+        serviceId: selectedService.id,
+        date: selectedDate,
+        time: selectedTime,
+        customerName: userName,
+        status: 'pending'
+      };
+
+      const response = await apiClient.post('/appointments', appointmentData);
+      
+      if (response.status === 201 || response.status === 200) {
+        alert('¡Cita confirmada con éxito! Te esperamos.');
+        // Resetear selección
+        setSelectedService(null);
+        setSelectedDate('');
+        setSelectedTime('');
+      }
+    } catch (error) {
+      console.error('Error al confirmar cita:', error);
+      alert('Hubo un error al procesar tu cita. Inténtalo de nuevo.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: colors.bg, color: colors.text, padding: '20px', fontFamily: 'Inter, sans-serif' }}>
-      <header style={{ textAlign: 'center', margin: '30px 0' }}>
-        <h1 style={{ fontSize: '26px', fontWeight: '800' }}>Reserva tu Cita</h1>
-      </header>
-
-      {/* 1. CALENDARIO VISUAL */}
-      <section style={{ marginBottom: '32px' }}>
-        <h2 style={{ fontSize: '14px', color: colors.accent, textTransform: 'uppercase', marginBottom: '16px', letterSpacing: '0.05em' }}>1. Selecciona el día</h2>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '8px', backgroundColor: colors.card, padding: '15px', borderRadius: '20px', border: `1px solid ${colors.border}` }}>
-          {['L','M','X','J','V','S','D'].map(d => <div key={d} style={{ textAlign: 'center', fontSize: '12px', color: colors.accent }}>{d}</div>)}
-          {days.map(d => (
-            <button
-              key={d.num}
-              onClick={() => !d.isFull && setSelectedDay(d.num)}
-              style={{
-                aspectRatio: '1/1', border: 'none', borderRadius: '10px', fontSize: '14px', fontWeight: '600', cursor: d.isFull ? 'default' : 'pointer',
-                backgroundColor: selectedDay === d.num ? colors.accent : (d.isFull ? 'transparent' : colors.bg),
-                color: selectedDay === d.num ? 'white' : (d.isFull ? colors.danger : colors.text),
-                opacity: d.isFull ? 0.4 : 1
-              }}
-            >
-              {d.num}
-            </button>
-          ))}
+    <div style={{ minHeight: '100vh', backgroundColor: '#0F172A', padding: '20px', color: '#F8FAFC', fontFamily: 'Inter, sans-serif' }}>
+      
+      {/* HEADER: Logo y Botón Salir */}
+      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px', maxWidth: '800px', margin: '0 auto 40px auto' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          {/* Logo CCA SVG */}
+          <svg width="40" height="40" viewBox="0 0 192 192" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect width="192" height="192" rx="32" fill="#1E293B"/>
+            <circle cx="96" cy="96" r="70" stroke="#10B981" strokeWidth="4" opacity="0.3"/>
+            <text x="50%" y="55%" dominantBaseline="middle" textAnchor="middle" fontFamily="Arial" fontSize="40" fontWeight="bold" fill="#10B981">CCA</text>
+          </svg>
+          <span style={{ fontWeight: 'bold', fontSize: '18px' }}>Hola, {userName}</span>
         </div>
         
-        {/* Selectores de Mes/Año (Debajo del calendario como pediste) */}
-        <div style={{ display: 'flex', gap: '10px', marginTop: '15px' }}>
-          <select style={{ flex: 1, padding: '12px', borderRadius: '10px', backgroundColor: colors.card, color: 'white', border: `1px solid ${colors.border}` }}>
-            <option>Abril 2026</option>
-            <option>Mayo 2026</option>
-          </select>
-        </div>
-      </section>
+        <button 
+          onClick={handleLogout}
+          style={{ padding: '8px 16px', backgroundColor: '#334155', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '14px' }}
+        >
+          Cerrar Sesión
+        </button>
+      </header>
 
-      {/* 2. SLOTS DE HORA (Solo tras elegir día) */}
-      {selectedDay && (
-        <section style={{ marginBottom: '32px', animation: 'fadeIn 0.4s ease' }}>
-          <h2 style={{ fontSize: '14px', color: colors.accent, textTransform: 'uppercase', marginBottom: '16px' }}>2. Horas Disponibles</h2>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
-            {hours.map(h => (
-              <button
-                key={h.t}
-                onClick={() => h.free && setSelectedTime(h.t)}
+      <main style={{ maxWidth: '500px', margin: '0 auto', textAlign: 'center' }}>
+        <h1 style={{ fontSize: '28px', marginBottom: '10px' }}>Reserva tu cita</h1>
+        <p style={{ color: '#94A3B8', marginBottom: '30px' }}>Elige el momento perfecto para tu tratamiento</p>
+
+        {/* PASO 1: Servicio */}
+        <div style={{ marginBottom: '24px', textAlign: 'left' }}>
+          <label style={{ display: 'block', marginBottom: '8px', color: '#10B981', fontWeight: 'bold' }}>1. Selecciona el servicio</label>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+            {services.map(s => (
+              <button 
+                key={s.id}
+                onClick={() => setSelectedService(s)}
                 style={{
-                  padding: '14px 0', borderRadius: '12px', border: `1px solid ${h.free ? colors.accent : colors.danger}`,
-                  backgroundColor: selectedTime === h.t ? (h.free ? colors.accent : colors.danger) : 'transparent',
-                  color: selectedTime === h.t ? 'white' : (h.free ? colors.accent : colors.danger),
-                  fontWeight: 'bold', cursor: h.free ? 'pointer' : 'not-allowed', opacity: h.free ? 1 : 0.5
+                  padding: '12px',
+                  borderRadius: '12px',
+                  border: selectedService?.id === s.id ? '2px solid #10B981' : '1px solid #334155',
+                  backgroundColor: selectedService?.id === s.id ? '#1E293B' : '#0F172A',
+                  color: 'white',
+                  cursor: 'pointer'
                 }}
               >
-                {h.t}
+                {s.name}
               </button>
             ))}
           </div>
-        </section>
-      )}
+        </div>
 
-      {/* 3. SERVICIOS (Solo tras elegir hora) */}
-      {selectedTime && (
-        <section style={{ animation: 'fadeIn 0.4s ease', paddingBottom: '40px' }}>
-          <h2 style={{ fontSize: '14px', color: colors.accent, textTransform: 'uppercase', marginBottom: '16px' }}>3. Elige el servicio</h2>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            {[{id:1, n:'Manicura', p:'35€'}, {id:2, n:'Cejas', p:'20€'}].map(s => (
-              <div 
-                key={s.id} onClick={() => setSelectedService(s)}
+        {/* PASO 2: Fecha */}
+        <div style={{ marginBottom: '24px', textAlign: 'left' }}>
+          <label style={{ display: 'block', marginBottom: '8px', color: '#10B981', fontWeight: 'bold' }}>2. Elige el día</label>
+          <input 
+            type="date" 
+            value={selectedDate}
+            onChange={(e) => setSelectedDate(e.target.value)}
+            style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid #334155', backgroundColor: '#1E293B', color: 'white', fontSize: '16px' }}
+          />
+        </div>
+
+        {/* PASO 3: Hora */}
+        <div style={{ marginBottom: '40px', textAlign: 'left' }}>
+          <label style={{ display: 'block', marginBottom: '8px', color: '#10B981', fontWeight: 'bold' }}>3. Selecciona la hora</label>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px' }}>
+            {timeSlots.map(t => (
+              <button 
+                key={t}
+                onClick={() => setSelectedTime(t)}
                 style={{
-                  display: 'flex', justifyContent: 'space-between', padding: '20px', borderRadius: '16px', backgroundColor: colors.card,
-                  border: `2px solid ${selectedService?.id === s.id ? colors.accent : 'transparent'}`, cursor: 'pointer'
+                  padding: '10px',
+                  borderRadius: '8px',
+                  border: selectedTime === t ? '2px solid #10B981' : '1px solid #334155',
+                  backgroundColor: selectedTime === t ? '#1E293B' : '#0F172A',
+                  color: 'white',
+                  cursor: 'pointer'
                 }}
               >
-                <span style={{ fontWeight: 'bold' }}>{s.n}</span>
-                <span style={{ color: colors.accent, fontWeight: '800' }}>{s.p}</span>
-              </div>
+                {t}
+              </button>
             ))}
           </div>
-          {selectedService && (
-            <button style={{ width: '100%', marginTop: '20px', padding: '18px', backgroundColor: colors.accent, color: 'white', borderRadius: '15px', border: 'none', fontWeight: '800', fontSize: '17px', cursor: 'pointer' }}>
-              Confirmar Cita
-            </button>
-          )}
-        </section>
-      )}
+        </div>
 
-      <style>{`@keyframes fadeIn { from { opacity:0; transform: translateY(10px); } to { opacity:1; transform: translateY(0); } }`}</style>
+        {/* BOTÓN FINAL */}
+        <button 
+          onClick={handleConfirmAppointment}
+          disabled={loading}
+          style={{
+            width: '100%',
+            padding: '18px',
+            backgroundColor: '#10B981',
+            color: 'white',
+            borderRadius: '15px',
+            border: 'none',
+            fontSize: '18px',
+            fontWeight: 'bold',
+            cursor: loading ? 'not-allowed' : 'pointer',
+            boxShadow: '0 10px 15px -3px rgba(16, 185, 129, 0.3)'
+          }}
+        >
+          {loading ? 'Procesando...' : 'Confirmar Cita'}
+        </button>
+      </main>
     </div>
   );
 };
