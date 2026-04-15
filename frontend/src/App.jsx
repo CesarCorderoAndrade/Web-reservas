@@ -1,40 +1,43 @@
 /**
  * IMPORT GUIDE: frontend/src/App.jsx
- * Configuración de rutas con Login como página de inicio.
+ * Enrutador principal. Incluye el aviso de instalación PWA global.
  */
+
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 
+// Importación de las vistas
 import CustomerBookingView from './pages/CustomerBookingView.jsx';
 import AdminDashboardView from './pages/AdminDashboardView.jsx';
 import LoginView from './pages/LoginView.jsx';
 import RegisterView from './pages/RegisterView.jsx';
 
+// Importación del nuevo componente de instalación PWA
+import InstallPrompt from './components/InstallPrompt.jsx';
+
 const App = () => {
   return (
     <BrowserRouter>
-      <div style={{ 
-        fontFamily: 'Inter, system-ui, sans-serif', 
-        margin: 0, 
-        padding: 0, 
-        backgroundColor: '#0F172A', 
-        minHeight: '100vh',
-        color: '#F8FAFC' 
-      }}>
+      {/* Contenedor global Dark Mode */}
+      <div style={{ backgroundColor: '#0F172A', minHeight: '100vh', color: '#F8FAFC', fontFamily: 'Inter, sans-serif' }}>
+        
+        {/* Aviso de instalación PWA. Aparecerá automáticamente si es compatible */}
+        <InstallPrompt />
+
         <Routes>
-          {/* Ahora la raíz "/" muestra el Login directamente */}
+          {/* URL raíz "/" carga directamente el Login */}
           <Route path="/" element={<LoginView />} />
           
-          {/* Ruta de registro */}
+          {/* Ruta para que los nuevos clientes se registren */}
           <Route path="/register" element={<RegisterView />} />
           
-          {/* Una vez logueado, el cliente iría aquí para reservar */}
+          {/* Ruta del calendario (accesible tras el login) */}
           <Route path="/booking" element={<CustomerBookingView />} />
           
-          {/* Panel de administración */}
+          {/* Panel de administración privado */}
           <Route path="/admin" element={<AdminDashboardView />} />
 
-          {/* Si el usuario intenta entrar en una ruta que no existe, al login */}
+          {/* Cualquier otra ruta vuelve al Login */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </div>

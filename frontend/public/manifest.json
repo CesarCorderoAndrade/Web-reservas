@@ -1,0 +1,25 @@
+{
+  "short_name": "PRUEBA CCA",
+  "name": "Sistema Reservas CCA (Prueba)",
+  "icons": [
+    {
+      "src": "favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "logo192.svg",
+      "type": "image/svg+xml",
+      "sizes": "192x192"
+    },
+    {
+      "src": "logo512.svg",
+      "type": "image/svg+xml",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#0F172A",
+  "background_color": "#0F172A"
+}
