@@ -1,12 +1,13 @@
+/**
+ * IMPORT GUIDE: frontend/src/api/client.js
+ * Cliente Axios configurado con rutas relativas para arquitecturas unificadas.
+ */
+
 import axios from 'axios';
 
-// Cambia 'api-reservas' por el nombre que le hayas puesto en Render
-const API_URL = import.meta.env.PROD 
-  ? 'https://cca-reservas.onrender.com/api' 
-  : '/api';
-
 const apiClient = axios.create({
-  baseURL: API_URL,
+  // Al estar en el mismo dominio, la ruta relativa es la opción más segura y robusta.
+  baseURL: '/api',
   headers: {
     'Content-Type': 'application/json'
   }
