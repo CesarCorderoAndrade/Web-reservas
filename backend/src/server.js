@@ -1,6 +1,7 @@
 /**
  * IMPORT GUIDE: backend/src/server.js
  * Servidor de producción CCA-RESERVAS.
+ * Integra las rutas de autenticación, citas, servicios y sirve la aplicación web estática.
  */
 
 require('dotenv').config();
@@ -13,38 +14,45 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// --- API ---
+// --- CONTROLADORES ---
 const authCtrl = require('./controllers/authController');
 const appCtrl = require('./controllers/appointmentController');
+const servCtrl = require('./controllers/serviceController');
 
+// --- RUTAS DE LA API ---
 app.post('/api/auth/login', authCtrl.login);
 app.post('/api/auth/register', authCtrl.register);
 app.get('/api/appointments', appCtrl.getAllAppointments);
+app.get('/api/services', servCtrl.getAllServices);
 
-// --- FRONTEND (PWA) ---
+// --- SERVIR FRONTEND (PWA) ---
 
-// Usamos path.resolve para evitar errores de ruta en Linux/Render
+// Definimos la ruta absoluta hacia la carpeta del frontend compilado
 const publicPath = path.resolve(__dirname, '..', 'public_web');
 
-// Servimos los estáticos
+// Servir archivos estáticos (JS, CSS, Imágenes)
 app.use(express.static(publicPath));
 
-// Ruta comodín: Si no es API, entrega la WEB
+// Enrutador tipo SPA: Cualquier ruta no reconocida por la API devuelve el index.html
 app.get('*', (req, res) => {
     const indexFile = path.join(publicPath, 'index.html');
     res.sendFile(indexFile, (err) => {
         if (err) {
             console.error('[SISTEMA] Error: No encuentro el index.html en:', indexFile);
-            res.status(404).send('La web no se ha desplegado correctamente. Revisa que public_web existe en GitHub.');
+            res.status(404).send('Error 404: La interfaz web no se encuentra disponible.');
         }
     });
 });
 
-const PORT = process.env.PORT || 10000; // Render prefiere el 10000
+// --- INICIALIZACIÓN DEL SERVIDOR ---
+const PORT = process.env.PORT || 10000;
+
 app.listen(PORT, async () => {
     console.log(`[Servidor] Online en puerto ${PORT}`);
     try {
         await sequelize.authenticate();
         console.log('[DB] Neon.tech Conectado');
-    } catch (e) { console.error('[DB] Error:', e); }
+    } catch (e) { 
+        console.error('[DB] Error en la conexión:', e); 
+    }
 });
