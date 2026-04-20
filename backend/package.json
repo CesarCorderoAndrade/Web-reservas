@@ -15,7 +15,8 @@
     "pg": "^8.11.5",
     "pg-hstore": "^2.3.4",
     "sequelize": "^6.37.3",
-    "uuid": "^13.0.0"
+    "uuid": "^13.0.0",
+    "async": ""
   },
   "devDependencies": {
     "nodemon": "^3.1.0"
@@ -23,3 +24,4 @@
   "author": "",
   "license": "ISC"
 }
+
