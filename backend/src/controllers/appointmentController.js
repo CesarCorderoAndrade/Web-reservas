@@ -73,7 +73,6 @@ const createAppointment = async (req, res) => {
             startTime: startTime,
             endTime: endTime,
             status: 'CONFIRMED',
-            cancelToken: uuidv4(),
             internalNotes: req.body.internalNotes || null
         };
 
