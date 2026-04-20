@@ -29,22 +29,35 @@ const AdminDashboardView = () => {
   }, []);
 
   // Lógica de filtrado: Se ejecuta cada vez que cambian las citas, el texto de búsqueda o la fecha
+
   useEffect(() => {
     let result = appointments;
 
-    // 1. Filtrar por nombre de cliente
+    // 1. Filtrado por cliente
     if (searchTerm) {
       result = result.filter(app => 
-        app.clientName.toLowerCase().includes(searchTerm.toLowerCase())
+        app.clientName && app.clientName.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
 
-    // 2. Filtrar por fecha exacta
+    // 2. Filtrado por fecha
     if (searchDate) {
-      // Convertimos el formato YYYY-MM-DD a DD/MM/YYYY para comparar con la visualización
-      const [y, m, d] = searchDate.split('-');
-      const formattedSearchDate = `${d}/${m}/${y}`;
-      result = result.filter(app => app.appointmentTime.includes(formattedSearchDate));
+      result = result.filter(app => {
+        if (!app.appointmentTime) return false;
+
+        // Caso A: Formato nativo ISO de PostgreSQL en producción (YYYY-MM-DD)
+        if (app.appointmentTime.includes(searchDate)) {
+            return true;
+        }
+
+        // Caso B: Formato convertido a cadena local (DD/MM/YYYY)
+        const [y, m, d] = searchDate.split('-');
+        const dateVariation1 = `${d}/${m}/${y}`;
+        const dateVariation2 = `${parseInt(d, 10)}/${parseInt(m, 10)}/${y}`;
+        
+        return app.appointmentTime.includes(dateVariation1) || 
+               app.appointmentTime.includes(dateVariation2);
+      });
     }
 
     setFilteredAppointments(result);
