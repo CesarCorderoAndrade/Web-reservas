@@ -5,7 +5,7 @@
  */
 
 const { User, sequelize } = require('../models');
-const { v4: uuidv4 } = require('uuid');
+const crypto = require('crypto');
 
 /**
  * Registra un nuevo usuario y su perfil de cliente asociado.
@@ -26,7 +26,7 @@ const register = async (req, res) => {
 
         // 2. Creamos el nuevo usuario
         const newUser = await User.create({
-            id: uuidv4(),
+            id: crypto.randomUUID(),
             email,
             password, // Senior Note: Implementar hashing con bcrypt en fase final
             fullName,
