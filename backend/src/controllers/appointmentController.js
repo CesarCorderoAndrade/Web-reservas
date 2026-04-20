@@ -5,7 +5,7 @@
  * utiliza la misma lógica exacta que la creación, evitando fallos de JOIN.
  */
 const { Appointment, Service, sequelize } = require('../models');
-const { v4: uuidv4 } = require('uuid');
+const crypto = require('crypto');
 
 const getAllAppointments = async (req, res) => {
     try {
@@ -66,7 +66,7 @@ const createAppointment = async (req, res) => {
         const endTime = new Date(startTime.getTime() + (durationMinutes * 60000));
 
         const dbPayload = {
-            id: uuidv4(),
+            id: crypto.randomUUID(),
             tenantId: service.tenantId,
             clientId: clientId,
             serviceId: req.body.serviceId,
