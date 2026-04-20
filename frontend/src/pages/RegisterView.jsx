@@ -1,7 +1,7 @@
 /**
  * IMPORT GUIDE: frontend/src/pages/RegisterView.jsx
  * Formulario de registro completo para nuevos clientes.
- * Conecta con el backend para persistir usuarios en la base de datos PostgreSQL.
+ * Se añade el campo 'phone' para cumplir con las restricciones de la base de datos.
  */
 
 import React, { useState } from 'react';
@@ -9,7 +9,12 @@ import { useNavigate, Link } from 'react-router-dom';
 import apiClient from '../api/client';
 
 const RegisterView = () => {
-  const [formData, setFormData] = useState({ fullName: '', email: '', password: '' });
+  const [formData, setFormData] = useState({ 
+    fullName: '', 
+    email: '', 
+    password: '',
+    phone: '' // Campo requerido por la tabla 'clients'
+  });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const navigate = useNavigate();
@@ -20,7 +25,7 @@ const RegisterView = () => {
     setError(null);
 
     try {
-      // Petición real al endpoint de registro que habilitaremos en el backend
+      // Petición al endpoint de registro enviando el objeto con el nuevo campo phone
       await apiClient.post('/auth/register', formData);
       alert('¡Cuenta creada con éxito! Ahora puedes iniciar sesión.');
       navigate('/login');
@@ -57,6 +62,13 @@ const RegisterView = () => {
             type="email" placeholder="Email" required 
             value={formData.email}
             onChange={(e) => setFormData({...formData, email: e.target.value})}
+            style={{ width: '100%', boxSizing: 'border-box', padding: '16px', borderRadius: '12px', border: '1px solid #334155', backgroundColor: '#0F172A', color: 'white', fontSize: '16px' }}
+          />
+          {/* Nuevo campo de teléfono añadido para evitar errores de null en la BD */}
+          <input 
+            type="tel" placeholder="Teléfono" required 
+            value={formData.phone}
+            onChange={(e) => setFormData({...formData, phone: e.target.value})}
             style={{ width: '100%', boxSizing: 'border-box', padding: '16px', borderRadius: '12px', border: '1px solid #334155', backgroundColor: '#0F172A', color: 'white', fontSize: '16px' }}
           />
           <input 

@@ -1,6 +1,7 @@
 /**
  * IMPORT GUIDE: frontend/src/pages/LoginView.jsx
  * Vista de autenticación con manejo explícito de errores y estados de carga.
+ * Se asegura de persistir el email del usuario para la gestión de citas.
  */
 
 import React, { useState } from 'react';
@@ -29,7 +30,8 @@ const LoginView = () => {
       const storage = remember ? localStorage : sessionStorage;
       storage.setItem('user_role', user.role);
       storage.setItem('user_name', user.fullName);
-      storage.setItem('token', user.token); // Asumiendo que el backend devuelve un JWT
+      storage.setItem('user_email', user.email); // CAMBIO CRÍTICO: Necesario para vincular citas con clientes
+      storage.setItem('token', user.token); 
 
       // Enrutamiento condicional por rol
       if (user.role === 'admin') {
@@ -39,7 +41,6 @@ const LoginView = () => {
       }
     } catch (err) {
       console.error('[Auth] Error en la petición:', err);
-      // Extraemos el mensaje de error del backend si existe, o mostramos uno genérico
       const errorMessage = err.response?.data?.error || err.message || 'Error desconocido';
       alert(`Fallo al iniciar sesión: ${errorMessage}`);
     } finally {
@@ -50,6 +51,7 @@ const LoginView = () => {
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#0F172A', display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '20px', fontFamily: 'Inter, sans-serif' }}>
       <form onSubmit={handleLogin} style={{ width: '100%', maxWidth: '400px', backgroundColor: '#1E293B', padding: '40px', borderRadius: '24px', border: '1px solid #334155', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.3)' }}>
+        <h1 style={{ color: '#F8FAFC', fontSize: '26px', textAlign: 'center', marginBottom: '8px' }}>WEB APP Reserva tu cita</h1>
         <h1 style={{ color: '#F8FAFC', fontSize: '26px', textAlign: 'center', marginBottom: '8px' }}>Bienvenido</h1>
         <p style={{ color: '#94A3B8', textAlign: 'center', marginBottom: '32px' }}>Inicia sesión para continuar</p>
 
@@ -60,7 +62,7 @@ const LoginView = () => {
             required 
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            style={{ padding: '16px', borderRadius: '12px', border: '1px solid #334155', backgroundColor: '#0F172A', color: 'white', fontSize: '16px', outline: 'none' }}
+            style={{ width: '100%', boxSizing: 'border-box', padding: '16px', borderRadius: '12px', border: '1px solid #334155', backgroundColor: '#0F172A', color: 'white', fontSize: '16px', outline: 'none' }}
           />
           <input 
             type="password" 
@@ -68,7 +70,7 @@ const LoginView = () => {
             required 
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            style={{ padding: '16px', borderRadius: '12px', border: '1px solid #334155', backgroundColor: '#0F172A', color: 'white', fontSize: '16px', outline: 'none' }}
+            style={{ width: '100%', boxSizing: 'border-box', padding: '16px', borderRadius: '12px', border: '1px solid #334155', backgroundColor: '#0F172A', color: 'white', fontSize: '16px', outline: 'none' }}
           />
           
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
@@ -84,6 +86,7 @@ const LoginView = () => {
           <button 
             disabled={isLoading}
             style={{ 
+              width: '100%',
               padding: '16px', 
               backgroundColor: isLoading ? '#059669' : '#10B981', 
               color: 'white', 

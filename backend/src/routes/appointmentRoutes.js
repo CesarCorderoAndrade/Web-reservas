@@ -1,33 +1,39 @@
 /**
  * IMPORT GUIDE: backend/src/routes/appointmentRoutes.js
- * Definición de las rutas RESTful para las citas.
+ * Definición central de las rutas RESTful para las citas.
+ * Gestiona inyección de contexto (tenant) y protección de rutas.
  */
 
 const express = require('express');
 const router = express.Router();
 const appointmentController = require('../controllers/appointmentController');
+
+// Nota: Si el middleware blacklist no existe en tu proyecto actual, 
+// puedes comentar esta línea y quitarlo de la ruta POST.
 const { checkBlacklist } = require('../middlewares/blacklistMiddleware');
 
-// Middleware simulado para inyectar el tenantId en esta fase de desarrollo
 const tenantInjector = (req, res, next) => {
-    // En producción, esto se extrae del subdominio (ej: ana.tuapp.com)
-    // Por ahora forzamos un UUID de prueba
+    // Simulación de inyección multi-tenant
     req.tenantId = '123e4567-e89b-12d3-a456-426614174000'; 
     next();
 };
 
 router.use(tenantInjector);
 
-/**
- * POST /api/appointments
- * Endpoint protegido por la validación de la lista negra.
- */
+// Obtener todas las citas (Panel Admin)
+router.get('/', appointmentController.getAllAppointments);
+
+// Obtener historial de citas de un cliente (Área Personal)
+// Requiere ?email=correo@dominio.com en la petición
+router.get('/my-appointments', appointmentController.getClientAppointments);
+
+// Crear nueva cita
 router.post('/', checkBlacklist, appointmentController.createAppointment);
 
-/**
- * GET /api/appointments/:id/cancel/:cancelToken
- * Endpoint público para la cancelación en un click.
- */
+// Actualizar estado de cita (Admin Dashboard / Cancelaciones internas)
+router.put('/:id/status', appointmentController.updateStatus);
+
+// Cancelación pública mediante token único
 router.get('/:id/cancel/:cancelToken', appointmentController.cancelAppointment);
 
 module.exports = router;

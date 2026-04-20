@@ -1,13 +1,13 @@
 /**
  * IMPORT GUIDE: frontend/src/api/client.js
- * Cliente Axios configurado con rutas relativas para arquitecturas unificadas.
+ * Cliente Axios conectado explícitamente al backend local.
  */
 
 import axios from 'axios';
 
 const apiClient = axios.create({
-  // Al estar en el mismo dominio, la ruta relativa es la opción más segura y robusta.
-  baseURL: '/api',
+  // Forzamos que todas las peticiones vayan al puerto 3000 donde vive Express
+  baseURL: 'http://localhost:3000/api',
   headers: {
     'Content-Type': 'application/json'
   }

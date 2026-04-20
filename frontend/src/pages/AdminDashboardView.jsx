@@ -1,6 +1,8 @@
 /**
  * IMPORT GUIDE: frontend/src/pages/AdminDashboardView.jsx
- * Panel de Administración principal blindado contra errores de tipo.
+ * Panel de administración avanzado.
+ * Incluye filtros dinámicos por nombre y fecha, además de acceso a servicios.
+ * Senior Note: Se utiliza filtrado en cliente para una respuesta de interfaz inmediata.
  */
 
 import React, { useState, useEffect } from 'react';
@@ -10,142 +12,132 @@ import apiClient from '../api/client';
 const AdminDashboardView = () => {
   const navigate = useNavigate();
   const [appointments, setAppointments] = useState([]);
+  const [filteredAppointments, setFilteredAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  
+  // Estados para los filtros
+  const [searchTerm, setSearchTerm] = useState('');
+  const [searchDate, setSearchDate] = useState(new Date().toISOString().split('T')[0]); // Por defecto: Hoy
 
   const colors = {
     bg: '#0F172A', card: '#1E293B', text: '#F8FAFC',
-    muted: '#94A3B8', accent: '#10B981', danger: '#F43F5E', border: '#334155'
+    accent: '#10B981', border: '#334155', danger: '#F43F5E', muted: '#94A3B8'
   };
 
   useEffect(() => {
-    const fetchAppointments = async () => {
-      try {
-        setLoading(true);
-        const response = await apiClient.get('/appointments');
-        
-        // Validacion estricta: Asegurar que la respuesta es un Array
-        if (Array.isArray(response.data)) {
-            setAppointments(response.data);
-        } else {
-            throw new Error('Formato de datos incorrecto desde el servidor');
-        }
-      } catch (err) {
-        console.error('[AdminDashboard] Error:', err);
-        setError('Sin conexión con la base de datos. Mostrando modo local.');
-        setAppointments([
-          { id: 'uuid-1', appointmentTime: '10:00', clientName: 'Ana Martínez', serviceName: 'Manicura Premium', status: 'CONFIRMADA' },
-          { id: 'uuid-2', appointmentTime: '11:30', clientName: 'Pedro López', serviceName: 'Diseño de Cejas', status: 'COMPLETADA' }
-        ]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchAppointments();
   }, []);
 
-  const handleStatusChange = async (id, newStatus) => {
-    const previousAppointments = [...appointments];
-    setAppointments(prev => prev.map(app => app.id === id ? { ...app, status: newStatus } : app));
+  // Lógica de filtrado: Se ejecuta cada vez que cambian las citas, el texto de búsqueda o la fecha
+  useEffect(() => {
+    let result = appointments;
 
+    // 1. Filtrar por nombre de cliente
+    if (searchTerm) {
+      result = result.filter(app => 
+        app.clientName.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
+    // 2. Filtrar por fecha exacta
+    if (searchDate) {
+      // Convertimos el formato YYYY-MM-DD a DD/MM/YYYY para comparar con la visualización
+      const [y, m, d] = searchDate.split('-');
+      const formattedSearchDate = `${d}/${m}/${y}`;
+      result = result.filter(app => app.appointmentTime.includes(formattedSearchDate));
+    }
+
+    setFilteredAppointments(result);
+  }, [searchTerm, searchDate, appointments]);
+
+  const fetchAppointments = async () => {
     try {
-      await apiClient.put(`/appointments/${id}/status`, { status: newStatus });
-    } catch (err) {
-      setAppointments(previousAppointments);
-      alert('Error de red. No se pudo actualizar.');
+      setLoading(true);
+      const response = await apiClient.get('/appointments');
+      setAppointments(Array.isArray(response.data) ? response.data : []);
+    } catch (error) {
+      console.error('[AdminDashboard] Error:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const getStatusStyle = (status) => {
-    switch (status) {
-      case 'CONFIRMADA': return { color: '#60A5FA', bg: '#1E3A8A' };
-      case 'COMPLETADA': return { color: '#34D399', bg: '#064E3B' };
-      case 'PENDIENTE': return { color: '#FBBF24', bg: '#78350F' };
-      case 'CANCELADA': return { color: '#F87171', bg: '#7F1D1D' };
-      default: return { color: colors.muted, bg: '#334155' };
-    }
+  const resetToToday = () => {
+    setSearchDate(new Date().toISOString().split('T')[0]);
+    setSearchTerm('');
   };
-
-  // Variable segura para evitar el TypeError: filter is not a function
-  const safeAppointments = Array.isArray(appointments) ? appointments : [];
-  const completedAppointments = safeAppointments.filter(a => a.status === 'COMPLETADA').length;
-  const estimatedRevenue = completedAppointments * 35; 
-
-  if (loading) {
-    return (
-      <div style={{ minHeight: '100vh', backgroundColor: colors.bg, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-        <p style={{ color: colors.accent, fontWeight: '600' }}>Cargando datos...</p>
-      </div>
-    );
-  }
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: colors.bg, color: colors.text, padding: '20px', fontFamily: 'Inter, sans-serif' }}>
-      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
+    <div style={{ padding: '40px', maxWidth: '1000px', margin: '0 auto', fontFamily: 'Inter, sans-serif' }}>
+      
+      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '30px' }}>
         <div>
-          <h1 style={{ fontSize: '22px', fontWeight: '800', margin: 0 }}>Dashboard</h1>
-          <p style={{ color: colors.muted, fontSize: '14px', margin: 0 }}>Agenda en tiempo real</p>
+          <h1 style={{ fontSize: '32px', fontWeight: '800', margin: 0 }}>Panel Admin</h1>
+          <p style={{ color: colors.muted, marginTop: '5px' }}>Visualizando {filteredAppointments.length} citas filtradas.</p>
         </div>
-        <button 
-          onClick={() => navigate('/')}
-          style={{ padding: '8px 14px', backgroundColor: colors.danger, color: '#FFFFFF', border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: '600', cursor: 'pointer' }}
-        >
-          Salir
-        </button>
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <button onClick={() => navigate('/admin/services')} style={{ padding: '10px 20px', backgroundColor: 'transparent', color: colors.accent, border: `1px solid ${colors.accent}`, borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer' }}>Servicios</button>
+          <button onClick={() => { localStorage.clear(); navigate('/login'); }} style={{ padding: '10px 20px', backgroundColor: colors.danger, color: 'white', border: 'none', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer' }}>Salir</button>
+        </div>
       </header>
 
-      {error && (
-        <div style={{ backgroundColor: '#7F1D1D', color: '#FECACA', padding: '12px', borderRadius: '8px', marginBottom: '20px', fontSize: '14px', border: '1px solid #DC2626' }}>
-          {error}
+      {/* Barra de Herramientas de Filtro */}
+      <section style={{ display: 'grid', gridTemplateColumns: '2fr 1fr auto', gap: '15px', marginBottom: '30px', backgroundColor: colors.card, padding: '20px', borderRadius: '16px', border: `1px solid ${colors.border}` }}>
+        <div>
+          <label style={{ display: 'block', fontSize: '12px', color: colors.muted, marginBottom: '8px' }}>Buscar por cliente</label>
+          <input 
+            type="text" 
+            placeholder="Ej: Cesar..." 
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            style={{ width: '100%', padding: '12px', backgroundColor: colors.bg, border: `1px solid ${colors.border}`, borderRadius: '10px', color: 'white' }}
+          />
         </div>
-      )}
+        <div>
+          <label style={{ display: 'block', fontSize: '12px', color: colors.muted, marginBottom: '8px' }}>Filtrar por fecha</label>
+          <input 
+            type="date" 
+            value={searchDate}
+            onChange={(e) => setSearchDate(e.target.value)}
+            style={{ width: '100%', padding: '12px', backgroundColor: colors.bg, border: `1px solid ${colors.border}`, borderRadius: '10px', color: 'white', colorScheme: 'dark' }}
+          />
+        </div>
+        <div style={{ display: 'flex', alignItems: 'flex-end' }}>
+          <button 
+            onClick={resetToToday}
+            style={{ padding: '12px 20px', backgroundColor: colors.accent, color: 'white', border: 'none', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer' }}
+          >
+            Hoy
+          </button>
+        </div>
+      </section>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '32px' }}>
-        <div style={{ backgroundColor: colors.card, padding: '16px', borderRadius: '16px', border: `1px solid ${colors.border}` }}>
-          <span style={{ fontSize: '12px', color: colors.muted }}>Citas Totales</span>
-          <div style={{ fontSize: '24px', fontWeight: '800', marginTop: '4px' }}>{safeAppointments.length}</div>
-        </div>
-        <div style={{ backgroundColor: colors.card, padding: '16px', borderRadius: '16px', border: `1px solid ${colors.border}` }}>
-          <span style={{ fontSize: '12px', color: colors.muted }}>Ingresos (Completadas)</span>
-          <div style={{ fontSize: '24px', fontWeight: '800', marginTop: '4px', color: colors.accent }}>{estimatedRevenue}€</div>
-        </div>
-      </div>
-
-      <h2 style={{ fontSize: '14px', textTransform: 'uppercase', color: colors.accent, letterSpacing: '0.1em', marginBottom: '16px', fontWeight: '700' }}>Registro de Citas</h2>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-        {safeAppointments.length === 0 ? (
-          <p style={{ color: colors.muted, textAlign: 'center', padding: '20px' }}>No hay citas registradas.</p>
+      <main>
+        {loading ? (
+          <p style={{ textAlign: 'center', color: colors.accent }}>Cargando agenda...</p>
         ) : (
-          safeAppointments.map(app => {
-            const style = getStatusStyle(app.status);
-            return (
-              <div key={app.id} style={{ backgroundColor: colors.card, padding: '16px', borderRadius: '16px', border: `1px solid ${colors.border}` }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
-                  <div>
-                    <div style={{ fontSize: '18px', fontWeight: '700' }}>{app.appointmentTime}</div>
-                    <div style={{ fontSize: '15px', color: colors.text, marginTop: '2px' }}>{app.clientName || 'Cliente No Registrado'}</div>
-                    <div style={{ fontSize: '13px', color: colors.muted }}>{app.serviceName || 'Servicio General'}</div>
-                  </div>
-                  <span style={{ backgroundColor: style.bg, color: style.color, padding: '4px 10px', borderRadius: '6px', fontSize: '11px', fontWeight: '700' }}>
-                    {app.status}
-                  </span>
-                </div>
-                <select 
-                  value={app.status}
-                  onChange={(e) => handleStatusChange(app.id, e.target.value)}
-                  style={{ width: '100%', padding: '10px', borderRadius: '8px', backgroundColor: colors.bg, color: colors.text, border: `1px solid ${colors.border}`, fontSize: '14px', cursor: 'pointer' }}
-                >
-                  <option value="PENDIENTE">Pendiente</option>
-                  <option value="CONFIRMADA">Confirmar</option>
-                  <option value="COMPLETADA">Finalizar</option>
-                  <option value="CANCELADA">Cancelar</option>
-                </select>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {filteredAppointments.length === 0 ? (
+              <div style={{ padding: '60px', textAlign: 'center', backgroundColor: colors.card, borderRadius: '20px', border: `1px dashed ${colors.border}` }}>
+                <p style={{ color: colors.muted }}>No se han encontrado citas para estos criterios.</p>
               </div>
-            );
-          })
+            ) : (
+              filteredAppointments.map(app => (
+                <div key={app.id} style={{ backgroundColor: colors.card, padding: '20px', borderRadius: '16px', border: `1px solid ${colors.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div>
+                    <div style={{ fontWeight: 'bold', fontSize: '18px' }}>{app.clientName}</div>
+                    <div style={{ color: colors.accent, fontSize: '14px', fontWeight: '600' }}>{app.serviceName}</div>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontWeight: 'bold' }}>{app.appointmentTime}</div>
+                    <div style={{ fontSize: '11px', color: colors.muted, marginTop: '4px', textTransform: 'uppercase', letterSpacing: '1px' }}>{app.status}</div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
         )}
-      </div>
+      </main>
     </div>
   );
 };
